@@ -16,6 +16,8 @@
 package org.thingsboard.server.controller;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import org.apache.kafka.common.protocol.types.Field;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +44,7 @@ import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.security.Authority;
 import org.thingsboard.server.dao.exception.IncorrectParameterException;
 import org.thingsboard.server.dao.model.ModelConstants;
+import org.thingsboard.server.mapper.DeviceCountMapper;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.permission.Operation;
@@ -49,6 +52,7 @@ import org.thingsboard.server.service.security.permission.Resource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -57,6 +61,9 @@ import java.util.stream.Collectors;
 public class AssetController extends BaseController {
 
     public static final String ASSET_ID = "assetId";
+
+    @Autowired
+    DeviceCountMapper deviceCountMapper;
 
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/asset/{assetId}", method = RequestMethod.GET)
@@ -69,6 +76,29 @@ public class AssetController extends BaseController {
         } catch (Exception e) {
             throw handleException(e);
         }
+    }
+
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @RequestMapping(value = "/assetOfDevice/{assetId}", method = RequestMethod.GET)
+    @ResponseBody
+    public int getAssetOfDeviceCountById(@PathVariable(ASSET_ID) String strAssetId) throws ThingsboardException {
+        checkParameter(ASSET_ID, strAssetId);
+        try {
+            AssetId assetId = new AssetId(toUUID(strAssetId));
+            List<String> deviceCount = deviceCountMapper.deviceCountByAssetId(fromTimeUUID(assetId.getId()));
+            return deviceCount.size();
+        } catch (Exception e) {
+            throw handleException(e);
+        }
+    }
+
+    public static String fromTimeUUID(UUID src) {
+        if (src.version() != 1) {
+            throw new IllegalArgumentException("Only Time-Based UUID (Version 1) is supported!");
+        }
+        String str = src.toString();
+        // 58e0a7d7-eebc-11d8-9669-0800200c9a66 => 1d8eebc58e0a7d796690800200c9a66. Note that [11d8] -> [1d8]
+        return str.substring(15, 18) + str.substring(9, 13) + str.substring(0, 8) + str.substring(19, 23) + str.substring(24);
     }
 
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")

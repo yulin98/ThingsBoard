@@ -15,6 +15,7 @@
  */
 package org.thingsboard.server;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.ComponentScan;
@@ -29,6 +30,7 @@ import java.util.Arrays;
 @EnableSwagger2
 @EnableScheduling
 @ComponentScan({"org.thingsboard.server"})
+@MapperScan(basePackages = "org.thingsboard.server.mapper")
 public class ThingsboardServerApplication {
 
     private static final String SPRING_CONFIG_NAME_KEY = "--spring.config.name";
